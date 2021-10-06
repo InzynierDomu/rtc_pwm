@@ -4,7 +4,7 @@
 * [Scheme](#Scheme)
 * [IDE](#IDE)
 ## About
-To config project for own needs You should change:
+To config project for own needs You should change start sunrise(in example 8:10):
 ```cpp
 const DateTime m_start_time = DateTime(2000, 1, 1, 8, 10, 0); ///< time when surise start
 ```
