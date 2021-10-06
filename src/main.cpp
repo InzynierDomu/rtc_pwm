@@ -12,32 +12,33 @@
 
 RTC_DS1307 m_rtc; ///< DS1307 RTC
 
-const byte  m_pwm_pin = D8;
-const DateTime m_start_time = DateTime(2000, 1, 1, 23, 44, 0); ///< time when realy turn on
-const int m_sunrise_time = 30;
-const int m_min_in_h = 60;            ///< minutes in an hour
-const int m_refresh_time_ms = 15000;  ///< time of repeting check time is in range and sending message
-const int m_starting_pwm = 1;
+const byte  m_pwm_pin = D8;   ///< pin for led
+const DateTime m_start_time = DateTime(2000, 1, 1, 8, 10, 0); ///< time when surise start
+const uint8_t m_sunrise_time = 30;    ///< duration of sunrise
+const uint8_t m_min_in_h = 60;        ///< minutes in an hour
+const unsigned long m_refresh_time_ms = 15000;  ///< time of repeting check time is in range and sending message
+const uint8_t m_starting_pwm = 0;     ///< starting duty cycle pwm for sunrise
+const uint8_t m_pwm_resolution = 255; ///< finish duty cycle pwm for sunrise
 
 /**
  * @brief calculate hours and minutes to only minutes
  * @param time hours and minutes to calculate
  * @return minutes
  */
-int min_calculate(const DateTime& current)
+uint16_t min_calculate(const DateTime& time)
 {
-  int current_minute = current.hour() * m_min_in_h;
-  current_minute += current.minute();
-  return current_minute;
+  uint16_t time_minute = time.hour() * m_min_in_h;
+  time_minute += time.minute();
+  return time_minute;
 }
 
 /**
- * @brief 
+ * @brief changing duty cycle pwm output proportionally to sunrise progress
  * @param time_in_min time from sunrise start
  */
 void sunrise(const int time_in_min)
 {
-  auto pwm = map(time_in_min, 0, m_sunrise_time, m_starting_pwm, 255);
+  auto pwm = map(time_in_min, 0, m_sunrise_time, m_starting_pwm, m_pwm_resolution);
   analogWrite(m_pwm_pin, pwm);
   Serial.println(pwm);
 }
@@ -69,18 +70,18 @@ void setup()
  */
 void loop() 
 {  
-  static long last_loop_time = 0;
-  long loop_time = millis();
+  static unsigned long last_loop_time = 0;
+  unsigned long loop_time = millis();
   if(loop_time - last_loop_time > m_refresh_time_ms)
   {
-    DateTime time = m_rtc.now();
-    Serial.print(time.hour(), DEC);
+    DateTime now = m_rtc.now();
+    Serial.print(now.hour(), DEC);
     Serial.print(":");
-    Serial.print(time.minute(), DEC);
+    Serial.print(now.minute(), DEC);
     Serial.print(":");
-    Serial.println(time.second(), DEC);
+    Serial.println(now.second(), DEC);
     last_loop_time = millis();
-    auto sunrise_time = min_calculate(time) - min_calculate(m_start_time);
+    auto sunrise_time = min_calculate(now) - min_calculate(m_start_time);
     if((sunrise_time >= 0) && (sunrise_time <= m_sunrise_time ))
     {
       sunrise(sunrise_time);
