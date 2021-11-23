@@ -23,14 +23,6 @@ const uint8_t m_duration = 30; ///< duration of sunrise or sunset
 const uint8_t m_min_in_h = 60; ///< minutes in an hour
 const unsigned long m_refresh_time_ms = 5000; ///< time of repeting check time is in range and sending message
 
-enum class day_state
-{
-  NIGHT,
-  SUNRISE,
-  DAY,
-  SUNSET
-};
-
 /**
  * @brief calculate hours and minutes to only minutes
  * @param time hours and minutes to calculate
