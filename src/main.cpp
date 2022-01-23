@@ -9,19 +9,22 @@
 #include "RTClib.h"
 
 #include <Arduino.h>
-#include <Wire.h>
 
 RTC_DS1307 m_rtc; ///< DS1307 RTC
 
-const byte m_pwm_pin = D8; ///< pin for led
+const byte m_pwm_pin = 6; ///< pin for led
 const uint8_t m_starting_pwm = 0; ///< starting duty cycle pwm for sunrise
 const uint8_t m_pwm_resolution = 255; ///< finish duty cycle pwm for sunrise
 
-const DateTime m_sunrise_time = DateTime(2000, 1, 1, 8, 10, 0); ///< time when surise start
-const DateTime m_sunset_time = DateTime(2000, 1, 1, 20, 10, 0); ///< time when sunset start
-const uint8_t m_duration = 30; ///< duration of sunrise or sunset
+const DateTime m_sunrise_time = DateTime(2000, 1, 1, 18, 5, 0); ///< time when surise start
+const DateTime m_sunset_time = DateTime(2000, 1, 1, 23, 57, 0); ///< time when sunset start
+const uint8_t m_duration = 31; ///< duration of sunrise or sunset
 const uint8_t m_min_in_h = 60; ///< minutes in an hour
 const unsigned long m_refresh_time_ms = 5000; ///< time of repeting check time is in range and sending message
+
+
+uint8_t lookup_table[] = {0,  1,  2,  3,  4,  5,  7,   9,   12,  15,  18,  22,  27,  32,  38,  44,
+                          51, 58, 67, 76, 86, 96, 108, 120, 134, 148, 163, 180, 197, 216, 235, 255};
 
 /**
  * @brief calculate hours and minutes to only minutes
@@ -35,13 +38,18 @@ uint16_t min_calculate(const DateTime& time)
   return time_minute;
 }
 
+uint8_t map_on_lookup_table(uint8_t time)
+{
+  return lookup_table[time];
+}
+
 /**
  * @brief changing duty cycle pwm output proportionally to sunrise progress
  * @param time_in_min time from sunrise start
  */
 void sunrise(const int time_in_min)
 {
-  auto pwm = map(time_in_min, 0, m_duration, m_starting_pwm, m_pwm_resolution);
+  auto pwm = map_on_lookup_table(time_in_min);
   analogWrite(m_pwm_pin, pwm);
   Serial.println(pwm);
 }
@@ -52,7 +60,7 @@ void sunrise(const int time_in_min)
  */
 void sunset(const int time_in_min)
 {
-  auto pwm = map(time_in_min, 0, m_duration, m_pwm_resolution, m_starting_pwm);
+  auto pwm = map_on_lookup_table(time_in_min);
   analogWrite(m_pwm_pin, pwm);
   Serial.println(pwm);
 }
@@ -80,7 +88,7 @@ void setup()
   m_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
 
   DateTime now = m_rtc.now();
-  if ((min_calculate(now) >= min_calculate(m_sunrise_time)) && (min_calculate(now) <= min_calculate(m_sunset_time)))
+  if ((min_calculate(now) > min_calculate(m_sunrise_time)) && (min_calculate(now) < min_calculate(m_sunset_time)))
   {
     analogWrite(m_pwm_pin, m_pwm_resolution);
   }
@@ -109,13 +117,15 @@ void loop()
     Serial.println(now.second(), DEC);
     last_loop_time = millis();
 
-    if ((min_calculate(now) >= min_calculate(m_sunrise_time)) && (min_calculate(now) + m_duration <= min_calculate(m_sunrise_time)))
+    if ((min_calculate(now) >= min_calculate(m_sunrise_time)) && (min_calculate(now) <= (min_calculate(m_sunrise_time) + m_duration)))
     {
       sunrise(min_calculate(now) - min_calculate(m_sunrise_time));
+      Serial.println("sunrise");
     }
-    else if ((min_calculate(now) >= min_calculate(m_sunset_time)) && (min_calculate(now) + m_duration <= min_calculate(m_sunset_time)))
+    else if ((min_calculate(now) >= min_calculate(m_sunset_time)) && (min_calculate(now) <= (min_calculate(m_sunset_time) + m_duration)))
     {
       sunset(min_calculate(now) - min_calculate(m_sunset_time));
+      Serial.println("sunset");
     }
   }
 }
